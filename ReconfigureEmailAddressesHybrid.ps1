@@ -8,6 +8,7 @@ By default the script runs in test mode, to make changes the argument live shoul
 
 
 .EXAMPLE
+This script must be run from within the Exchange Shell. 
 ReconfigureEmailAddressesHybrid.ps1 [options]
 possible options are live or leave it blank.  
 
@@ -23,12 +24,12 @@ https://github.com/heathen1878/ReconfigureEmailAliasesHybrid
 Set-StrictMode -Version Latest
 
 # Import the necessary functions
-. .\Functions.ps1
+# This looks for functions.ps1 in path
+. Functions.ps1
 
 # Declare variables
 [Boolean]$bValidator = $false
 [string]$sQuery = ""
-[Array]$arrValid = @()
 [System.Collections.ArrayList]$arrNewEmailAddresses = @()
 [String]$sRemoveFromArray = ""
 [PsCredential]$Creds = $null
@@ -111,27 +112,11 @@ While (!$bValidator) {
 # Reset the validator
 $bValidator = $false
 
-# Set validator
-$arrValid = ("Place holder")
-$arrValid += ($false)
-
-# Call connect to Exchange Online
-While (!$arrValid[1]) {
-	
-	$arrValid = ConnectToExchange -Credentials $creds -Location "R"
-	If (!$arrValid[1]){
-		$Creds = Get-Credential -Message "Please enter your Office 365 credentials"	
-	}	
-	Else {
-		Import-PSSession $arrValid[0]
-	}
-}
-
 # Create a query for the Get-Mailbox cmdlet.
 $sQuery = -Join ("*@",$sCurrentPrimaryDomain)
 
 # Get a collection of mailboxes which have the current domain has a primary SMTP address. This will work with regular mailboxes, resource mail and shared mailboxes.
-Get-Mailbox -ResultSize Unlimited | Where-Object {$_.PrimarySmtpAddress -like $sQuery} | ForEach-Object {
+Get-RemoteMailbox -ResultSize Unlimited | Where-Object {$_.PrimarySmtpAddress -like $sQuery} | ForEach-Object {
 		
 	Try 
 	{	
@@ -186,11 +171,10 @@ Get-Mailbox -ResultSize Unlimited | Where-Object {$_.PrimarySmtpAddress -like $s
 		If ($sRunType -eq "live"){
 
 			# Update the email addresses associated with the mailbox
-			#Set-Mailbox -Identity $sUserAlias -EmailAddresses $arrNewEmailAddresses
+			Set-RemoteMailbox -Identity $sUserAlias -EmailAddresses $arrNewEmailAddresses
 			
 			# Check our work.
-			Write-Output "Checking the configuration" -foregroundcolor Yellow
-			Get-mailbox -Identity $sUserAlias | select-Object PrimarySmtpAddress
+			WriteToLog -sLogFile "setPrimarySmtpAddress.log" -sLogContent "Checking the configuration has applied: $(Get-RemoteMailbox -Identity $sUserAlias | select-Object -ExpandProperty PrimarySmtpAddress)"
 
 		}	
 	}		
@@ -272,11 +256,11 @@ Get-DistributionGroup -ResultSize Unlimited | Where-Object {$_.PrimarySmtpAddres
 		if ($sRunType -eq "live"){
 
 			# Update the email addresses associated with the mailbox
-			#Set-DistributionGroup -Identity $sUserAlias -EmailAddresses $arrNewEmailAddresses
+			Set-DistributionGroup -Identity $sUserAlias -EmailAddresses $arrNewEmailAddresses
 		
 			# Check our work.
-			Write-Output "Checking the configuration" -foregroundcolor Yellow
-			Get-DistributionGroup -Identity $sUserAlias | select-Object PrimarySmtpAddress
+			WriteToLog -sLogFile "setPrimarySmtpAddress.log" -sLogContent "Checking the configuration has applied: $(Get-DistributionGroup -Identity $sUserAlias | select-Object -ExpandProperty PrimarySmtpAddress)"
+	
 		}
 	}		
 	Catch 
@@ -301,5 +285,4 @@ Get-DistributionGroup -ResultSize Unlimited | Where-Object {$_.PrimarySmtpAddres
 }
 
 # Clean up the remote PowerShell session created earlier.
-Clear-Variable arrValid
 Get-PSSession | Remove-PSSession

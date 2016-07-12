@@ -127,17 +127,19 @@ Function ConnectToMicrosoftOnline {
     [PSCredential]$Credentials
 	)
 	
+    [bool]$ReturnValue = $false
+
 	Try 
 	{
 		Connect-MsolService -Credential $credentials -ErrorAction Stop
-		$ConnectToMicrosoftOnline = $true
+		$ReturnValue = $true
 	}
 	Catch
 	{
 		Write-Output "Invalid credentials. Please re-enter" -ForegroundColor Red
-		$ConnectToMicrosoftOnline = $false
+		$ReturnValue = $false
 	}
-Return, $ConnectToMicrosoftOnline
+Return, $ReturnValue
 }
 ############# Office 365 Functions ########################################
 ############# Windows Azure Connectivity Functions ########################

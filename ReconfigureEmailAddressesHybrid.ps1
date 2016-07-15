@@ -4,6 +4,8 @@
 This script take input interactively and reconfigures the primary SMTP address of all mailboxes and distribution groups which have a specific accepted domain.
 By default the script runs in test mode, to make changes the argument live should be supplied. 
 
+The script checks for possible duplicate values before making any changes, if duplicates are discover they're reported on.
+
 .DESCRIPTION
 
 
